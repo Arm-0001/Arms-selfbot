@@ -17,11 +17,16 @@ const prefix = client.config.prefix;
 const botIds = [client.config.bleedBotId, client.config.mudaeBotId]
 const updateChecker = client.config.updateChecker
 const autoGrab = client.config.autoGrab
-const autoJoin = client.config.blackTea.autoJoin
-const playerTracking = client.config.blackTea.playerTracking
-const nodelay = client.config.blackTea.nodelay
+const nodelay = client.config.bleed.nodelay
 const enabled = client.config.enabled
-const typingIndicators = client.config.blackTea.typingIndicators
+const autoJoinBleed = client.config.bleed.autoJoin
+const autoJoinMudae = client.config.mudae.autoJoin
+const joinDelayMudae = client.config.mudae.joinDelay
+const joinDelayBleed = client.config.bleed.joinDelay
+const typingIndicatorsBleed = client.config.bleed.typingIndicators
+const typingIndicatorsMudae = client.config.mudae.typingIndicators
+const playerTrackingBleed = client.config.bleed.playerTracking
+const playerTrackingMudae = client.config.mudae.playerTracking
 
 // stats tracking
 let lives = 2
@@ -58,7 +63,7 @@ function sendTypingPacket(channelId) {
         });
 }
 
-function solveLetters(message, content, time) {
+function solveLetters(message, content, time, bot) {
     if (debugMode) {console.log(`${time} | Found the message`)} // DEBUG: found the message
     let letters = content.split('letters: **')[1].split('**')[0].toLowerCase(); // get the letters
     console.log(`${time} | Looking for words with the following letters: ${letters}`);
@@ -66,7 +71,7 @@ function solveLetters(message, content, time) {
         if (debugMode) {console.log(`${time} | running command: python script.py ${letters}`)} // DEBUG: print command
         let command = `python script.py ${letters}`
         if (nodelay) {command += ' True'}
-        if (typingIndicators) {
+        if (typingIndicatorsBleed) {
             sendTypingPacket(message.channel.id)
         }
         exec(command, async (err, stdout, stderr) => {
@@ -106,7 +111,7 @@ function welcomeMessage() {
         "Nodelay: " + nodelay,
         "Enabled: " + enabled,
         "Auto Grab: " + autoGrab,
-        "Auto Join: " + autoJoin,
+        "Auto Join: " + autoJoinBleed + " " + autoJoinMudae,
     ];
     const maxLineLength = Math.max(...lines.map(line => line.length));
 
@@ -146,20 +151,45 @@ client.on('messageCreate', async (message) => {
             console.log(`${time} | Autograb set to ${autoGrab}`)
             message.channel.send(`Autograb set to ${autoGrab}`)
         } else if (message.content.startsWith(prefix + 'autojoin')) {
-            autoJoin = !autoJoin
-            console.log(`${time} | Autojoin set to ${autoJoin}`)
-            message.channel.send(`Autojoin set to ${autoJoin}`)
+            // get for which bot (bleed or mudae)
+            const bot = message.content.split(' ')[1]
+            if (bot === 'bleed') {
+                autoJoinBleed = !autoJoinBleed
+                console.log(`${time} | Autojoin bleed set to ${autoJoinBleed}`)
+                message.channel.send(`Autojoin bleed set to ${autoJoinBleed}`)
+            } else if (bot === 'mudae') {
+                autoJoinMudae = !autoJoinMudae
+                console.log(`${time} | Autojoin mudae set to ${autoJoinMudae}`)
+                message.channel.send(`Autojoin mudae set to ${autoJoinMudae}`)
+            } else {
+                message.channel.send('Please specify which bot you want to autojoin for (bleed or mudae)')
+            }
         } else if (message.content.startsWith(prefix + 'debug')) {
             debugMode = !debugMode
             console.log(`${time} | Debug mode set to ${debugMode}`)
             message.channel.send(`Debug mode set to ${debugMode}`)
-        } 
+        } else if (message.content.startsWith(prefix + 'typingindicators')) {
+            const bot = message.content.split(' ')[1]
+            if (bot === 'bleed') {
+                typingIndicatorsBleed = !typingIndicatorsBleed
+                console.log(`${time} | Typing indicators bleed set to ${typingIndicatorsBleed}`)
+                message.channel.send(`Typing indicators bleed set to ${typingIndicatorsBleed}`)
+            } else if (bot === 'mudae') {
+                typingIndicatorsMudae = !typingIndicatorsMudae
+                console.log(`${time} | Typing indicators mudae set to ${typingIndicatorsMudae}`)
+                message.channel.send(`Typing indicators mudae set to ${typingIndicatorsMudae}`)
+            } else {
+                message.channel.send('Please specify which bot you want to enable typing indicators for (bleed or mudae)')
+            }
+        }  else if (message.content.startsWith(prefix + 'help')) {
+            message.channel.send(`**Commands:**\n\`${prefix}nodelay\` - Toggle nodelay mode\n\`${prefix}enable\` - Toggle bot\n\`${prefix}autograb\` - Toggle autograb\n\`${prefix}autojoin bleed\` - Toggle autojoin for bleed\n\`${prefix}autojoin mudae\` - Toggle autojoin for mudae\n\`${prefix}typingindicators bleed\` - Toggle typing indicators for bleed\n\`${prefix}typingindicators mudae\` - Toggle typing indicators for mudae\n\`${prefix}debug\` - Toggle debug mode`)
+        }
     } else if (botIds.includes(message.author.id)) {
         if (message.author.id === client.config.bleedBotId) { // check if the message is from the bleed bot
             if (message.embeds.length > 0 && message.embeds[0].description) { // check if message has embeds
                 const content = message.embeds[0].description 
                 if (debugMode) {console.log(content);} // DEBUG: print embed content
-                if (content.includes('A word can only be used **once** through the course of the game.') && autoJoin) {
+                if (content.includes('A word can only be used **once** through the course of the game.') && autoJoinBleed) {
                     message.react('✅');
                     joined += 1
                     console.log(`${time} | Successfully joined game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
@@ -182,11 +212,35 @@ client.on('messageCreate', async (message) => {
                     console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
                 }
                 else if (content.includes('Type a **word** containing the letters:') && message.mentions.users.has(client.user.id)) {
-                    solveLetters(message, content, time);
+                    solveLetters(message, content, time, "bleed");
                 }
             }
         } else if (message.author.id === client.config.mudaeBotId) { // check if the message is from the mudae bot
-            
+            if (message.embeds.length > 0 && message.embeds[0].description) { // check if message has embeds
+                const content = message.embeds[0].description 
+                if (debugMode) {console.log(content);} // DEBUG: print embed content
+                if (content.includes('The Black Teaword will start!') && autoJoinMudae) {
+                    message.react('✅');
+                    joined += 1
+                    console.log(`${time} | Successfully joined mudae game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
+                }
+            } else if (message.content.includes('No participants... I would have had time to prepare a good tea.')) {
+                console.log(`${time} | Not enough players in ${message.guild.name} in channel ${message.channel.name}!`);
+                joined -= 1
+            } else if (message.content.includes(`${client.user.username} **won the game!**`)) {
+                console.log(`${time} | Won the game in ${message.guild.name} in channel ${message.channel.name}!`)
+                lives = 2
+                wins += 1
+                console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
+            } else if (message.content.includes('eliminated!') && message.mentions.users.has(client.user.id)) {
+                console.log(`${time} | Lost the game in ${message.guild.name} in channel ${message.channel.name}!`)
+                lives = 2
+                losses += 1
+                console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
+            }
+            else if (message.content.includes('Type a word containing:') && message.mentions.users.has(client.user.id)) {
+                solveLetters(message, message.content, time, "mudae");
+            }
         }
     } else {
         if (message.content === "Someone just dropped their wallet in this channel! Hurry and open it up with ~grab before someone else gets it!" && autoGrab) {
