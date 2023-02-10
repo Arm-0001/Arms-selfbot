@@ -15,6 +15,7 @@ const token = client.config.token;
 const debugMode = client.config.debugMode
 const prefix = client.config.prefix;
 const botIds = [client.config.bleedBotId, client.config.mudaeBotId]
+const updateChecker = client.config.updateChecker
 let nodelay = client.config.blackTea.nodelay
 let enabled = client.config.enabled
 
@@ -24,17 +25,24 @@ let wins = 0
 let losses = 0
 let joined = 0
 
-/* version checker
-fetch('https://api.github.com/repos/Arm-0001/Arms-Discord-Selfbot/commits')
+
+if (updateChecker) {
+fetch('https://api.github.com/repos/Arm-0001/Arms-selfbot/commits')
     .then(res => res.json())
     .then(json => {
-        console.log(json)
         const latestVersion = json[0].sha
-        if (latestVersion !== client.config.version) {
+        // get the sha of the current file
+        const currentVersion = require('child_process')
+            .execSync('git rev-parse HEAD')
+            .toString().trim();
+        if (latestVersion !== currentVersion) {
             console.log(`You are not using the latest version of the bot! Please update to ${latestVersion}`)
+            console.log(`Changelog: ${json[0].commit.message}`)
+        } else {
+            console.log("You are using the latest version of the bot!")
         }
     });
-*/
+}
 
 function welcomeMessage() {
     const lines = [

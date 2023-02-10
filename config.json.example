@@ -3,6 +3,7 @@
     "debugMode": false,
     "prefix": "!",
     "ownerId": "789054057692004362",
+    "updateChecker": true,
     "enabled": true,
     "bleedBotId": "593921296224747521",
     "mudaeBotId": "432610292342587392",
