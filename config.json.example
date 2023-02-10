@@ -1,0 +1,15 @@
+{
+    "token": "",
+    "debugMode": false,
+    "prefix": "!",
+    "ownerId": "789054057692004362",
+    "enabled": true,
+    "bleedBotId": "593921296224747521",
+    "mudaeBotId": "432610292342587392",
+    "blackTea": {
+        "nodelay": true,
+        "typingIndicators": true,
+        "autoJoin": true,
+        "playerTracking": true
+    }
+}
