@@ -12,10 +12,10 @@ client.config = config;
 
 // bot config
 const token = client.config.token;
-const debugMode = client.config.debugMode
 const prefix = client.config.prefix;
 const botIds = [client.config.bleedBotId, client.config.mudaeBotId]
 const updateChecker = client.config.updateChecker
+let debugMode = client.config.debugMode
 let autoGrab = client.config.autoGrab
 let nodelay = client.config.bleed.nodelay
 let enabled = client.config.enabled
@@ -197,6 +197,22 @@ client.on('messageCreate', async (message) => {
             }
         }  else if (message.content.startsWith(prefix + 'help')) {
             message.channel.send(`**Commands:**\n\`${prefix}nodelay\` - Toggle nodelay mode\n\`${prefix}enable\` - Toggle bot\n\`${prefix}autograb\` - Toggle autograb\n\`${prefix}autojoin bleed\` - Toggle autojoin for bleed\n\`${prefix}autojoin mudae\` - Toggle autojoin for mudae\n\`${prefix}typingindicators bleed\` - Toggle typing indicators for bleed\n\`${prefix}typingindicators mudae\` - Toggle typing indicators for mudae\n\`${prefix}debug\` - Toggle debug mode`)
+        } else if (message.content.startsWith(prefix + 'playertracking')) {
+            const bot = message.content.split(' ')[1]
+            if (bot === 'bleed') {
+                playerTrackingBleed = !playerTrackingBleed
+                console.log(`${time} | Player tracking bleed set to ${playerTrackingBleed}`)
+                message.channel.send(`Player tracking bleed set to ${playerTrackingBleed}`)
+            } else if (bot === 'mudae') {
+                playerTrackingMudae = !playerTrackingMudae
+                console.log(`${time} | Player tracking mudae set to ${playerTrackingMudae}`)
+                message.channel.send(`Player tracking mudae set to ${playerTrackingMudae}`)
+            } else {
+                message.channel.send('Please specify which bot you want to enable player tracking for (bleed or mudae)')
+            }
+        } else if (message.content.startsWith(prefix +  'config')) {
+            // print the current settings
+            message.channel.send(`**Current settings:**\n\`Nodelay:\` ${nodelay}\n\`Enabled:\` ${enabled}\n\`Autograb:\` ${autoGrab}\n\`Autojoin bleed:\` ${autoJoinBleed}\n\`Autojoin mudae:\` ${autoJoinMudae}\n\`Typing indicators bleed:\` ${typingIndicatorsBleed}\n\`Typing indicators mudae:\` ${typingIndicatorsMudae}\n\`Debug mode:\` ${debugMode}\n\`Player tracking bleed:\` ${playerTrackingBleed}\n\`Player tracking mudae:\` ${playerTrackingMudae}`)
         }
     } else if (botIds.includes(message.author.id)) {
         if (message.author.id === client.config.bleedBotId) { // check if the message is from the bleed bot
