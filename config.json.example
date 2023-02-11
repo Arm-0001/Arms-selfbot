@@ -1,5 +1,6 @@
 {
     "token": "",
+    "version": "1.0.0",
     "debugMode": false,
     "prefix": "!",
     "ownerId": "789054057692004362",
@@ -8,10 +9,18 @@
     "updateChecker": false,
     "autoGrab": true,
     "enabled": true,
-    "blackTea": {
+    "bleed": {
         "nodelay": false,
         "typingIndicators": true,
         "autoJoin": true,
-        "playerTracking": true
+        "playerTracking": true,
+        "joinDelay": 2
+    },
+    "mudae": {
+        "nodelay": false,
+        "typingIndicators": true,
+        "autoJoin": true,
+        "playerTracking": true,
+        "joinDelay": 3
     }
 }

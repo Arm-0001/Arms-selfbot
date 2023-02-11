@@ -16,17 +16,18 @@ const debugMode = client.config.debugMode
 const prefix = client.config.prefix;
 const botIds = [client.config.bleedBotId, client.config.mudaeBotId]
 const updateChecker = client.config.updateChecker
-const autoGrab = client.config.autoGrab
-const nodelay = client.config.bleed.nodelay
-const enabled = client.config.enabled
-const autoJoinBleed = client.config.bleed.autoJoin
-const autoJoinMudae = client.config.mudae.autoJoin
-const joinDelayMudae = client.config.mudae.joinDelay
-const joinDelayBleed = client.config.bleed.joinDelay
-const typingIndicatorsBleed = client.config.bleed.typingIndicators
-const typingIndicatorsMudae = client.config.mudae.typingIndicators
-const playerTrackingBleed = client.config.bleed.playerTracking
-const playerTrackingMudae = client.config.mudae.playerTracking
+let autoGrab = client.config.autoGrab
+let nodelay = client.config.bleed.nodelay
+let enabled = client.config.enabled
+let autoJoinBleed = client.config.bleed.autoJoin
+let autoJoinMudae = client.config.mudae.autoJoin
+let joinDelayMudae = client.config.mudae.joinDelay
+let joinDelayBleed = client.config.bleed.joinDelay
+let typingIndicatorsBleed = client.config.bleed.typingIndicators
+let typingIndicatorsMudae = client.config.mudae.typingIndicators
+let playerTrackingBleed = client.config.bleed.playerTracking
+let playerTrackingMudae = client.config.mudae.playerTracking
+let currentActiveGame = ""
 
 // stats tracking
 let lives = 2
@@ -36,20 +37,15 @@ let joined = 0
 
 
 if (updateChecker) {
-fetch('https://api.github.com/repos/Arm-0001/Arms-selfbot/commits')
-    .then(res => res.json())
-    .then(json => {
-        const latestVersion = json[0].sha
-        // get the sha of the current file
-        const currentVersion = require('child_process')
-            .execSync('git rev-parse HEAD')
-            .toString().trim();
-        if (latestVersion !== currentVersion) {
-            console.log(`You are not using the latest version of the bot! Please update to ${latestVersion}`)
-            console.log(`Changelog: ${json[0].commit.message}`)
-        } else {
-            console.log("You are using the latest version of the bot!")
-        }
+// get the config.json from the latest commit then check if version is the same
+    fetch('https://raw.githubusercontent.com/Arm-0001/Arms-selfbot/main/config.json.example')
+        .then(res => res.json())
+        .then(json => {
+            if (json.version !== config.version) {
+                console.log("There is a new version available! Please download the latest version from https://github.com/Arm-0001/Arms-selfbot")
+            } else {
+                console.log("You are using the latest version!")
+            }
     });
 }
 
@@ -65,11 +61,20 @@ function sendTypingPacket(channelId) {
 
 function solveLetters(message, content, time, bot) {
     if (debugMode) {console.log(`${time} | Found the message`)} // DEBUG: found the message
-    let letters = content.split('letters: **')[1].split('**')[0].toLowerCase(); // get the letters
+    let letters = ''
+    let command = ''
+    if (bot === 'bleed') {
+        letters = content.split('letters: **')[1].split('**')[0].toLowerCase(); // get the letters
+        command = `python script.py ${letters}`
+    } else if (bot === 'mudae' || bot === 'redtea') {
+        letters = content.split('containing: **')[1].split('**')[0].toLowerCase(); // get the letters
+        command = `python redtea.py ${letters}`
+        if (!nodelay) {command += ' True'}
+        console.log(`${time} | Found word: ${letters} | Lives: ${lives}`);
+    }
     console.log(`${time} | Looking for words with the following letters: ${letters}`);
     if (letters.length === 3 && letters.match(/^[a-zA-Z]+$/)) { // check that there are 3 letters
         if (debugMode) {console.log(`${time} | running command: python script.py ${letters}`)} // DEBUG: print command
-        let command = `python script.py ${letters}`
         if (nodelay) {command += ' True'}
         if (typingIndicatorsBleed) {
             sendTypingPacket(message.channel.id)
@@ -190,12 +195,18 @@ client.on('messageCreate', async (message) => {
                 const content = message.embeds[0].description 
                 if (debugMode) {console.log(content);} // DEBUG: print embed content
                 if (content.includes('A word can only be used **once** through the course of the game.') && autoJoinBleed) {
-                    message.react('✅');
+                    setTimeout(() => {
+                        message.react('✅');
+                        joined += 1
+                        console.log(`${time} | Successfully joined game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
+                    }, joinDelayBleed * 1000)
+                    currentActiveGame = "bleed"
                     joined += 1
                     console.log(`${time} | Successfully joined game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
                 } else if (content.includes('Not enough players joined the game to start.')) {
                     console.log(`${time} | Not enough players in ${message.guild.name} in channel ${message.channel.name}!`);
                     joined -= 1
+                    currentActiveGame = ""
                 } else if (content.includes('💥 Times up, **Arm** has 1 life remaining!')) {
                     lives -= 1
                     console.log(`${time} | Lost a life in ${message.guild.name} in channel ${message.channel.name}! | Lives: ${lives}`)
@@ -204,11 +215,13 @@ client.on('messageCreate', async (message) => {
                     console.log(`${time} | Won the game in ${message.guild.name} in channel ${message.channel.name}!`)
                     lives = 2
                     wins += 1
+                    currentActiveGame = ""
                     console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
                 } else if (content.includes(`🚪 **${client.user.username}** has been **eliminated**!`)) {
                     console.log(`${time} | Lost the game in ${message.guild.name} in channel ${message.channel.name}!`)
                     lives = 2
                     losses += 1
+                    currentActiveGame = ""
                     console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
                 }
                 else if (content.includes('Type a **word** containing the letters:') && message.mentions.users.has(client.user.id)) {
@@ -220,26 +233,44 @@ client.on('messageCreate', async (message) => {
                 const content = message.embeds[0].description 
                 if (debugMode) {console.log(content);} // DEBUG: print embed content
                 if (content.includes('The Black Teaword will start!') && autoJoinMudae) {
-                    message.react('✅');
+                    setTimeout(() => {
+                        message.react('✅');
+                        joined += 1
+                        console.log(`${time} | Successfully joined game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
+                    }, joinDelayMudae * 1000)
+                    joined += 1
+                    currentActiveGame = "mudae"
+                    console.log(`${time} | Successfully joined mudae game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
+                } else if (content.includes("The Red Teaword will start!") && autoJoinMudae) {
+                    currentActiveGame = "redtea"
+                    setTimeout(() => {
+                        message.react('✅');
+                        joined += 1
+                        console.log(`${time} | Successfully joined game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
+                    }, joinDelayMudae * 1000)
                     joined += 1
                     console.log(`${time} | Successfully joined mudae game in ${message.guild.name} in channel ${message.channel.name}! | ${message.url}`);
                 }
             } else if (message.content.includes('No participants... I would have had time to prepare a good tea.')) {
                 console.log(`${time} | Not enough players in ${message.guild.name} in channel ${message.channel.name}!`);
                 joined -= 1
+                currentActiveGame = ""
             } else if (message.content.includes(`${client.user.username} **won the game!**`)) {
                 console.log(`${time} | Won the game in ${message.guild.name} in channel ${message.channel.name}!`)
                 lives = 2
                 wins += 1
                 console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
+                currentActiveGame = ""
             } else if (message.content.includes('eliminated!') && message.mentions.users.has(client.user.id)) {
                 console.log(`${time} | Lost the game in ${message.guild.name} in channel ${message.channel.name}!`)
                 lives = 2
                 losses += 1
+                currentActiveGame = ""
                 console.log(`Wins: ${wins}\nLosses: ${losses}\nJoined: ${joined}`)
-            }
-            else if (message.content.includes('Type a word containing:') && message.mentions.users.has(client.user.id)) {
+            } else if (message.content.includes('Type a word containing:') && message.mentions.users.has(client.user.id)) {
                 solveLetters(message, message.content, time, "mudae");
+            } else if (message.content.includes(':redtea: Type the longest')) {
+                solveLetters(message, message.content, time, "redtea");
             }
         }
     } else {
