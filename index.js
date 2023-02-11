@@ -107,7 +107,7 @@ function solveLetters(message, content, time, bot) {
 
 function welcomeMessage() {
     const lines = [
-        "  You are using version: 1.0.0  ",
+        `  You are using version: ${config.version}  `,
         "   AutoGame Bot By Arm#0001 ",
         "=========== SETTINGS ===========",
         "Debug mode: " + debugMode,
@@ -116,7 +116,16 @@ function welcomeMessage() {
         "Nodelay: " + nodelay,
         "Enabled: " + enabled,
         "Auto Grab: " + autoGrab,
-        "Auto Join: " + autoJoinBleed + " " + autoJoinMudae,
+        "=========== Bleed ===========",
+        "Auto Join: " + autoJoinBleed,
+        "Join Delay: " + joinDelayBleed,
+        "Typing Indicators: " + typingIndicatorsBleed,
+        "Player Tracking: " + playerTrackingBleed,
+        "=========== Mudae ===========",
+        "Auto Join: " + autoJoinMudae,
+        "Join Delay: " + joinDelayMudae,
+        "Typing Indicators: " + typingIndicatorsMudae,
+        "Player Tracking: " + playerTrackingMudae
     ];
     const maxLineLength = Math.max(...lines.map(line => line.length));
 
