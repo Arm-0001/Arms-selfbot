@@ -11,6 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "discord.js-selfbot-v13": "^2.9.20",
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.7"
   }
 }
